@@ -16,7 +16,7 @@ const CATEGORIAS: { valor: Categoria; etiqueta: string; emoji: string }[] = [
   { valor: "otro", etiqueta: "Otros", emoji: "📦" },
 ];
 
-async function getProductos(): Promise<Producto[]> {
+async function getProductos(): Promise<{ productos: Producto[]; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from("productos")
@@ -24,15 +24,18 @@ async function getProductos(): Promise<Producto[]> {
       .eq("activo", true)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
-    return data ?? [];
-  } catch {
-    return [];
+    if (error) {
+      return { productos: [], error: error.message };
+    }
+    return { productos: data ?? [], error: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { productos: [], error: msg };
   }
 }
 
 export default async function HomePage() {
-  const productos = await getProductos();
+  const { productos, error } = await getProductos();
 
   const productosPorCategoria = CATEGORIAS.map((cat) => ({
     ...cat,
@@ -90,6 +93,16 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Debug banner */}
+      {error && (
+        <div className="mx-auto max-w-6xl px-4 pt-4">
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+            <p className="mb-1 font-semibold">Debug — error al cargar productos:</p>
+            <code className="block break-all text-xs">{error}</code>
+          </div>
+        </div>
+      )}
 
       {/* Productos */}
       <section id="productos" className="mx-auto max-w-6xl px-4 pb-16">
