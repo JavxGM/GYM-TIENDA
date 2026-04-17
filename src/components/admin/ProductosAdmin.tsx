@@ -11,6 +11,7 @@ import {
   Check,
   AlertTriangle,
   Package,
+  Download,
 } from "lucide-react";
 
 const CATEGORIAS: { valor: Categoria; etiqueta: string }[] = [
@@ -43,6 +44,7 @@ export default function ProductosAdmin({
   const [form, setForm] = useState(VACIO);
   const [guardando, setGuardando] = useState(false);
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+  const [cargandoCatalogo, setCargandoCatalogo] = useState(false);
 
   const abrirCrear = () => {
     setEditando(null);
@@ -112,6 +114,36 @@ export default function ProductosAdmin({
     }
   };
 
+  const cargarCatalogo = async () => {
+    const msg =
+      productos.length > 0
+        ? `Ya tienes ${productos.length} producto(s). ¿Agregar los 20 del catálogo predefinido igualmente?`
+        : "¿Cargar el catálogo de 20 suplementos reales?";
+    if (!confirm(msg)) return;
+
+    setCargandoCatalogo(true);
+    try {
+      const password = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "gainrd2024";
+      const res = await fetch("/api/admin/seed", {
+        method: "POST",
+        headers: { "x-admin-password": password },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Error desconocido");
+
+      const { data } = await supabase
+        .from("productos")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data) setProductos(data);
+      alert(`✅ Se agregaron ${json.cantidad} productos al catálogo.`);
+    } catch (err) {
+      alert("Error al cargar catálogo: " + (err as Error).message);
+    } finally {
+      setCargandoCatalogo(false);
+    }
+  };
+
   const toggleActivo = async (p: Producto) => {
     const { data } = await supabase
       .from("productos")
@@ -129,13 +161,23 @@ export default function ProductosAdmin({
           <h1 className="text-2xl font-bold text-white">Productos</h1>
           <p className="text-sm text-gray-500">{productos.length} en total</p>
         </div>
-        <button
-          onClick={abrirCrear}
-          className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-        >
-          <Plus className="h-4 w-4" />
-          Agregar producto
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={cargarCatalogo}
+            disabled={cargandoCatalogo}
+            className="flex items-center gap-2 rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-orange-500/40 hover:text-white disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {cargandoCatalogo ? "Cargando..." : "Cargar catálogo"}
+          </button>
+          <button
+            onClick={abrirCrear}
+            className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+          >
+            <Plus className="h-4 w-4" />
+            Agregar producto
+          </button>
+        </div>
       </div>
 
       {/* Tabla */}
