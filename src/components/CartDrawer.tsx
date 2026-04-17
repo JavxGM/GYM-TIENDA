@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { generarMensajeWhatsApp } from "@/lib/whatsapp";
+import { supabase } from "@/lib/supabase";
 import { X, Trash2, Plus, Minus, ShoppingCart, MessageCircle } from "lucide-react";
 
 export default function CartDrawer() {
@@ -14,18 +15,35 @@ export default function CartDrawer() {
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
   const [notas, setNotas] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
-  const handlePedido = () => {
-    if (!nombre || !telefono || !direccion) return;
-    const url = generarMensajeWhatsApp(items, nombre, telefono, direccion, notas);
-    window.open(url, "_blank");
-    limpiar();
-    setPaso("carrito");
-    setNombre("");
-    setTelefono("");
-    setDireccion("");
-    setNotas("");
-    setAbierto(false);
+  const handlePedido = async () => {
+    if (!nombre || !telefono || !direccion || enviando) return;
+    setEnviando(true);
+    try {
+      await supabase.from("pedidos").insert({
+        cliente_nombre: nombre,
+        cliente_telefono: telefono,
+        cliente_direccion: direccion,
+        items,
+        total,
+        estado: "pendiente",
+        notas: notas || null,
+      });
+    } catch (err) {
+      console.error("Error guardando pedido:", err);
+    } finally {
+      const url = generarMensajeWhatsApp(items, nombre, telefono, direccion, notas);
+      window.open(url, "_blank");
+      limpiar();
+      setPaso("carrito");
+      setNombre("");
+      setTelefono("");
+      setDireccion("");
+      setNotas("");
+      setAbierto(false);
+      setEnviando(false);
+    }
   };
 
   if (!abierto) return null;
@@ -225,11 +243,11 @@ export default function CartDrawer() {
             ) : (
               <button
                 onClick={handlePedido}
-                disabled={!nombre || !telefono || !direccion}
+                disabled={!nombre || !telefono || !direccion || enviando}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <MessageCircle className="h-5 w-5" />
-                Enviar pedido por WhatsApp
+                {enviando ? "Enviando..." : "Enviar pedido por WhatsApp"}
               </button>
             )}
           </div>
