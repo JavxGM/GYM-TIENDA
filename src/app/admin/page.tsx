@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabase } from "@/lib/supabase";
 import { Package, ClipboardList, AlertTriangle, TrendingUp } from "lucide-react";
 import Link from "next/link";

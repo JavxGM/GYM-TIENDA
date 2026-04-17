@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabase } from "@/lib/supabase";
 import { Pedido } from "@/lib/types";
 import PedidosAdmin from "@/components/admin/PedidosAdmin";
