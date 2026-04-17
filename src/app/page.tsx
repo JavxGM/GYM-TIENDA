@@ -17,6 +17,10 @@ const CATEGORIAS: { valor: Categoria; etiqueta: string; emoji: string }[] = [
 ];
 
 async function getProductos(): Promise<{ productos: Producto[]; error: string | null }> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const keySet = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const keyLen = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length ?? 0;
+
   try {
     const { data, error } = await supabase
       .from("productos")
@@ -25,12 +29,22 @@ async function getProductos(): Promise<{ productos: Producto[]; error: string | 
       .order("created_at", { ascending: false });
 
     if (error) {
-      return { productos: [], error: error.message };
+      return {
+        productos: [],
+        error: `Supabase error: ${error.message} | URL="${url}" | keySet=${keySet} (len=${keyLen})`,
+      };
     }
     return { productos: data ?? [], error: null };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { productos: [], error: msg };
+    const cause =
+      err instanceof Error && err.cause
+        ? ` | cause: ${err.cause instanceof Error ? err.cause.message : String(err.cause)}`
+        : "";
+    return {
+      productos: [],
+      error: `${msg}${cause} | URL="${url}" | keySet=${keySet} (len=${keyLen})`,
+    };
   }
 }
 
